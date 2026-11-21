@@ -1,0 +1,21 @@
+# Xcode / build
+build/
+DerivedData/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+
+# XcodeGen generates the project from project.yml; don't commit the generated project
+MCPtoIntent.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Secrets / local
+*.xcconfig.local

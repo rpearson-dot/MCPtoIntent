@@ -1,0 +1,37 @@
+# XcodeGen project definition. On a Mac:
+#   brew install xcodegen
+#   xcodegen generate
+#   open MCPtoIntent.xcodeproj
+# then set your Team under Signing & Capabilities and run on your iPhone.
+name: MCPtoIntent
+options:
+  bundleIdPrefix: com.mcptointent
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    GENERATE_INFOPLIST_FILE: YES
+    # App Intents live in the main app target (iOS 16+), so no separate extension is needed.
+    INFOPLIST_KEY_CFBundleDisplayName: "MCP to Intent"
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+targets:
+  MCPtoIntent:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mcptointent.app
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSSiriUsageDescription: "Lets you ask your MCP servers' tools by voice through Siri."
+        TARGETED_DEVICE_FAMILY: "1,2"
+    # Siri entitlement: App Intents are discoverable without it, but Siri phrases want it on.
+    entitlements:
+      path: Sources/MCPtoIntent.entitlements
+      properties:
+        com.apple.developer.siri: true
