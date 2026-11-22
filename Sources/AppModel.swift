@@ -18,11 +18,24 @@ final class AppModel: ObservableObject {
 
     @discardableResult
     func addServer(name: String, url: String, token: String, authMode: AuthMode) -> ServerConfig {
-        let s = ServerConfig(name: name, mcpURL: url, authMode: authMode)
+        let s = ServerConfig(name: name, mcpURL: Self.normalizedMCPURL(url), authMode: authMode)
         store.upsert(s)
         if authMode == .token { s.token = token }
         reload()
         return s
+    }
+
+    /// Fill in the parts of an MCP URL people usually leave off: a missing scheme becomes `https://`, and a bare host
+    /// with no path gets `/mcp`. An explicit scheme (e.g. `http://` for local testing) or an explicit path is kept as
+    /// typed, so `host`, `host/mcp`, `https://host` and `http://host:8010/custom` all do the sensible thing.
+    static func normalizedMCPURL(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return s }
+        if !s.contains("://") { s = "https://" + s }          // prepend first, so "host:8010" isn't read as a scheme
+        guard var comp = URLComponents(string: s) else { return s }
+        if comp.scheme == nil || comp.scheme!.isEmpty { comp.scheme = "https" }
+        if comp.path.isEmpty || comp.path == "/" { comp.path = "/mcp" }
+        return comp.string ?? s
     }
 
     /// Run the interactive OAuth sign-in for a server; returns whether it succeeded.
@@ -49,8 +62,9 @@ final class AppModel: ObservableObject {
     /// person can change the name or URL without re-entering the secret.
     func editServer(_ server: ServerConfig, name: String, url: String, token: String, authMode: AuthMode) {
         var s = server
-        s.name = name.isEmpty ? url : name
-        s.mcpURL = url
+        let cleanURL = Self.normalizedMCPURL(url)
+        s.name = name.isEmpty ? cleanURL : name
+        s.mcpURL = cleanURL
         s.authMode = authMode
         store.upsert(s)
         if authMode == .token, !token.isEmpty { s.token = token }

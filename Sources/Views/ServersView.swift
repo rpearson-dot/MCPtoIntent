@@ -75,10 +75,12 @@ struct ServerFormView: View {
             Form {
                 Section("Server") {
                     TextField("Name", text: $name)
-                    TextField("MCP URL — e.g. https://host/mcp", text: $url)
+                    TextField("MCP URL — e.g. host, or https://host/mcp", text: $url)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                    Text("Just the host is enough — defaults to https:// and /mcp.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Sign in") {
                     Picker("Authentication", selection: $authMode) {
