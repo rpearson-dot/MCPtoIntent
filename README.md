@@ -45,6 +45,22 @@ Requires iOS 17+. App Intents live in the main app target, so there's no separat
 
 Start free; pay the $99 only if the weekly renewal becomes annoying.
 
+## Build a sideload-ready .ipa with no Mac (SideStore / AltStore)
+
+The **Sideload IPA** GitHub Action (`.github/workflows/sideload-ipa.yml`) builds an **unsigned** `.ipa` on a cloud
+macOS runner — no Apple account or secrets needed, because SideStore re-signs it with your free Apple ID at install.
+
+1. Run the workflow (it runs on push to `main`, or trigger it manually under **Actions → Sideload IPA → Run workflow**).
+2. Download the **MCPtoIntent-ipa** artifact from the finished run.
+3. Install it with **SideStore** (one-time pairing from a PC, then refreshes on-device over Wi-Fi) or **AltStore**
+   (needs AltServer on a PC). On a TrollStore-compatible iOS version, TrollStore installs it permanently with no expiry.
+
+It builds the **Sideload** configuration, which **omits the Siri entitlement** (`com.apple.developer.siri`) — a free
+Apple ID can't sign that capability, and App Shortcuts reach Siri without it. The **Release** configuration keeps the
+entitlement for the paid-account / TestFlight route. So one project serves both; nothing is lost either way.
+
+> macOS runner minutes are free for public repos; private repos bill them at 10×, so keep sideload builds occasional.
+
 ## Use it
 
 1. **Add a server** — its MCP URL (World Assistant: `https://<your server>/mcp`) and API token. The app syncs its tools.

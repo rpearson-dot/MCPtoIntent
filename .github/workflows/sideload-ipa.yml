@@ -1,0 +1,53 @@
+name: Sideload IPA
+
+# Builds an UNSIGNED .ipa for the SideStore / AltStore route: no Apple credentials needed here, because SideStore
+# re-signs the app with your free Apple ID when it installs it. Download the "MCPtoIntent-ipa" artifact from the run.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: Build (Sideload config, unsigned, device)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project MCPtoIntent.xcodeproj \
+            -scheme MCPtoIntent \
+            -configuration Sideload \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package the .ipa
+        run: |
+          set -euo pipefail
+          APP=$(find build/Build/Products/Sideload-iphoneos -maxdepth 1 -name "*.app" | head -n1)
+          test -n "$APP" || { echo "no .app produced"; exit 1; }
+          echo "Packaging $APP"
+          rm -rf Payload MCPtoIntent.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -r MCPtoIntent.ipa Payload >/dev/null
+          ls -la MCPtoIntent.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MCPtoIntent-ipa
+          path: MCPtoIntent.ipa
+          if-no-files-found: error

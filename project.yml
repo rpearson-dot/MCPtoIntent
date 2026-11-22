@@ -1,21 +1,26 @@
-# XcodeGen project definition. On a Mac:
-#   brew install xcodegen
-#   xcodegen generate
-#   open MCPtoIntent.xcodeproj
-# then set your Team under Signing & Capabilities and run on your iPhone.
+# XcodeGen project definition. On a Mac (or the CI runner):
+#   brew install xcodegen && xcodegen generate && open MCPtoIntent.xcodeproj
+#
+# Three build configurations:
+#   Debug / Release  — include the Siri entitlement (paid account / TestFlight sign it fine)
+#   Sideload         — omits the Siri entitlement, so a free Apple ID (AltStore/SideStore) can sign it.
+#                      App Shortcuts (App Intents) still reach Siri without that entitlement.
 name: MCPtoIntent
 options:
   bundleIdPrefix: com.mcptointent
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+  Sideload: release
 settings:
   base:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: YES
-    # App Intents live in the main app target (iOS 16+), so no separate extension is needed.
     INFOPLIST_KEY_CFBundleDisplayName: "MCP to Intent"
     INFOPLIST_KEY_UILaunchScreen_Generation: YES
 targets:
@@ -30,8 +35,19 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_NSSiriUsageDescription: "Lets you ask your MCP servers' tools by voice through Siri."
         TARGETED_DEVICE_FAMILY: "1,2"
-    # Siri entitlement: App Intents are discoverable without it, but Siri phrases want it on.
-    entitlements:
-      path: Sources/MCPtoIntent.entitlements
-      properties:
-        com.apple.developer.siri: true
+      configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: Sources/MCPtoIntent.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: Sources/MCPtoIntent.entitlements
+        Sideload:
+          CODE_SIGN_ENTITLEMENTS: Sources/MCPtoIntent-Sideload.entitlements
+schemes:
+  MCPtoIntent:
+    build:
+      targets:
+        MCPtoIntent: all
+    run:
+      config: Debug
+    archive:
+      config: Release
