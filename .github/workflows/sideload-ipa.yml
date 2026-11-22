@@ -10,11 +10,20 @@ on:
 # NOTE: GitHub-hosted macOS runners need a payment method on file for your account (an anti-abuse gate), even though
 # public-repo macOS minutes are free. Until that's added this job is cancelled with no runner. If you'd rather not add
 # a card, use codemagic.yaml instead (free macOS tier, no card) — same build.
+#
+# Hardening: the workflow token is read-only (it only needs to read the repo and upload an artifact), and checkout
+# doesn't leave credentials on disk. For maximum supply-chain hardening, pin actions to a full commit SHA instead of a
+# @v5 tag (a tag can be moved); kept on @v5 here so it tracks the latest within the major version.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Show Xcode version
         run: xcodebuild -version
