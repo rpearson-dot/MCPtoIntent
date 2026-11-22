@@ -50,9 +50,18 @@ Start free; pay the $99 only if the weekly renewal becomes annoying.
 The **Sideload IPA** GitHub Action (`.github/workflows/sideload-ipa.yml`) builds an **unsigned** `.ipa` on a cloud
 macOS runner — no Apple account or secrets needed, because SideStore re-signs it with your free Apple ID at install.
 
-1. Run the workflow (it runs on push to `main`, or trigger it manually under **Actions → Sideload IPA → Run workflow**).
-2. Download the **MCPtoIntent-ipa** artifact from the finished run.
-3. Install it with **SideStore** (one-time pairing from a PC, then refreshes on-device over Wi-Fi) or **AltStore**
+Two runners are provided — use whichever suits your account:
+
+- **Codemagic** (`codemagic.yaml`) — **free macOS tier, no payment method**. Sign in at codemagic.io with GitHub, add
+  this repo, run the **sideload** workflow, download the `MCPtoIntent.ipa` artifact. *Recommended if you don't want to
+  add a card.*
+- **GitHub Actions** (`.github/workflows/sideload-ipa.yml`) — same build, but GitHub-hosted **macOS runners require a
+  payment method on file** (even though public-repo macOS minutes are free). Add one under **Settings → Billing**, then
+  the run works; otherwise the macOS job is cancelled with no runner.
+
+Then:
+1. Download the `.ipa` artifact from the finished build.
+2. Install it with **SideStore** (one-time pairing from a PC, then refreshes on-device over Wi-Fi) or **AltStore**
    (needs AltServer on a PC). On a TrollStore-compatible iOS version, TrollStore installs it permanently with no expiry.
 
 It builds the **Sideload** configuration, which **omits the Siri entitlement** (`com.apple.developer.siri`) — a free

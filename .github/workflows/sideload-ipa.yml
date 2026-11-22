@@ -7,12 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# NOTE: GitHub-hosted macOS runners need a payment method on file for your account (an anti-abuse gate), even though
+# public-repo macOS minutes are free. Until that's added this job is cancelled with no runner. If you'd rather not add
+# a card, use codemagic.yaml instead (free macOS tier, no card) — same build.
 jobs:
-  smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Actions runs on this account. Ubuntu OK."
-
   build:
     runs-on: macos-14
     steps:

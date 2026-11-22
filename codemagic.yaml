@@ -1,0 +1,37 @@
+# Codemagic build for the SideStore route — a free macOS tier with no payment method required.
+# Set up: sign in at codemagic.io with GitHub, add this repository, and run the "sideload" workflow. It builds an
+# UNSIGNED .ipa (SideStore re-signs it with your free Apple ID at install) and exposes it as a downloadable artifact.
+workflows:
+  sideload:
+    name: Sideload IPA (unsigned)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+      - name: Generate the Xcode project
+        script: xcodegen generate
+      - name: Build (Sideload config, unsigned, device)
+        script: |
+          set -o pipefail
+          xcodebuild \
+            -project MCPtoIntent.xcodeproj \
+            -scheme MCPtoIntent \
+            -configuration Sideload \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package the .ipa
+        script: |
+          set -euo pipefail
+          APP=$(find build/Build/Products/Sideload-iphoneos -maxdepth 1 -name "*.app" | head -n1)
+          test -n "$APP" || { echo "no .app produced"; exit 1; }
+          rm -rf Payload MCPtoIntent.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -r MCPtoIntent.ipa Payload
+    artifacts:
+      - MCPtoIntent.ipa
