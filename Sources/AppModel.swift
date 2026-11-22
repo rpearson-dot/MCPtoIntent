@@ -1,3 +1,4 @@
+import AppIntents
 import Foundation
 import SwiftUI
 
@@ -93,7 +94,11 @@ final class AppModel: ObservableObject {
 
     // MARK: - per-tool settings
 
-    func setEnabled(_ on: Bool, tool: ToolInfo) { mutate(tool) { $0.enabled = on } }
+    func setEnabled(_ on: Bool, tool: ToolInfo) {
+        mutate(tool) { $0.enabled = on }
+        // The set of Siri-shared tools changed, so refresh the App Shortcut's suggested entities.
+        MCPShortcuts.updateAppShortcutParameters()
+    }
     func setFriendlyName(_ name: String, tool: ToolInfo) { mutate(tool) { $0.friendlyName = name } }
     func setPinned(_ value: String, param: String, tool: ToolInfo) {
         mutate(tool) { $0.pinnedArgs[param] = value.isEmpty ? nil : value }

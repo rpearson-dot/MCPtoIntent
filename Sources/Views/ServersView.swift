@@ -1,9 +1,11 @@
+import AppIntents
 import SwiftUI
 
 struct ServersView: View {
     @EnvironmentObject var model: AppModel
     @State private var adding = false
     @State private var editing: ServerConfig?
+    @State private var registered = false
 
     var body: some View {
         NavigationStack {
@@ -28,6 +30,17 @@ struct ServersView: View {
                     }
                 }
                 .onDelete { idx in idx.map { model.servers[$0] }.forEach(model.remove) }
+
+                Section {
+                    Button {
+                        MCPShortcuts.updateAppShortcutParameters()
+                        registered = true
+                    } label: {
+                        Label("Register Siri shortcuts", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                } footer: {
+                    Text("If “Run a tool” doesn’t show in the Shortcuts app, tap this and reopen Shortcuts. A fresh sideloaded install can take a minute to index.")
+                }
             }
             .navigationTitle("MCP servers")
             .navigationDestination(for: UUID.self) { id in
@@ -41,6 +54,11 @@ struct ServersView: View {
             }
             .sheet(isPresented: $adding) { ServerFormView() }
             .sheet(item: $editing) { server in ServerFormView(editing: server) }
+            .alert("Shortcuts registered", isPresented: $registered) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Open the Shortcuts app and search “MCP to Intent”, or ask Siri. It can take a moment to appear the first time.")
+            }
         }
     }
 }
