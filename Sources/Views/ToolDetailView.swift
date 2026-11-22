@@ -93,7 +93,8 @@ struct ToolDetailView: View {
         }
         do {
             let args = RunToolIntent.buildArguments(for: current, input: testInput)
-            let client = try MCPClient(serverURL: server.mcpURL, token: server.token)
+            let token = try await AuthManager.shared.accessToken(for: server)
+            let client = try MCPClient(serverURL: server.mcpURL, token: token)
             testOut = try await client.callTool(current.name, arguments: args).text
         } catch {
             testOut = error.localizedDescription

@@ -17,12 +17,26 @@ final class AppModel: ObservableObject {
     func reload() { servers = store.servers() }
 
     @discardableResult
-    func addServer(name: String, url: String, token: String) -> ServerConfig {
-        let s = ServerConfig(name: name, mcpURL: url)
+    func addServer(name: String, url: String, token: String, authMode: AuthMode) -> ServerConfig {
+        let s = ServerConfig(name: name, mcpURL: url, authMode: authMode)
         store.upsert(s)
-        s.token = token
+        if authMode == .token { s.token = token }
         reload()
         return s
+    }
+
+    /// Run the interactive OAuth sign-in for a server; returns whether it succeeded.
+    @MainActor
+    func signIn(_ server: ServerConfig) async -> Bool {
+        do {
+            try await AuthManager.shared.signIn(server: server)
+            status[server.id] = "Signed in"
+            objectWillChange.send()
+            return true
+        } catch {
+            status[server.id] = error.localizedDescription
+            return false
+        }
     }
 
     func update(_ server: ServerConfig, token: String?) {

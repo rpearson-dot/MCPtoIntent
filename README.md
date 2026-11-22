@@ -15,6 +15,9 @@ confirmation.
 
 - **Transport:** JSON-RPC over HTTP (MCP "streamable HTTP"), one request per POST, `Authorization: Bearer <token>`.
   Reads either a JSON reply or an SSE stream. No session state.
+- **Auth:** a static **API token** (World Assistant), or **OAuth 2.0 + PKCE** with discovery (RFC 8414/9728) and
+  dynamic client registration (RFC 7591) for servers that require it, like **Home Assistant**. Tokens refresh silently;
+  the one-time sign-in uses a secure web sheet.
 - **Enrichment (optional):** `GET /v1/capabilities` with `ETag`/`If-None-Match`, so a sync is a cheap `304` when
   nothing changed.
 - **Siri:** a single App Intent, *"Run a tool"*, takes the chosen tool (a dynamic App Intents entity built from your

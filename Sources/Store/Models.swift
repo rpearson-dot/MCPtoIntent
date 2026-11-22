@@ -1,14 +1,38 @@
 import Foundation
 
-/// One configured MCP server. The token lives in the Keychain (keyed by `id`), never here.
+enum AuthMode: String, Codable, Sendable {
+    case token   // a static API token sent as Bearer (World Assistant)
+    case oauth   // OAuth 2.0 + PKCE sign-in (e.g. Home Assistant)
+}
+
+/// One configured MCP server. Secrets (the static token, or the OAuth session) live in the Keychain, never here.
 struct ServerConfig: Codable, Identifiable, Equatable, Sendable {
     var id = UUID()
     var name: String
     var mcpURL: String
+    var authMode: AuthMode = .token
 
+    /// The static Bearer token (token mode only).
     var token: String {
         get { Keychain.token(for: id) }
         nonmutating set { Keychain.setToken(newValue, for: id) }
+    }
+
+    enum CodingKeys: String, CodingKey { case id, name, mcpURL, authMode }
+
+    init(id: UUID = UUID(), name: String, mcpURL: String, authMode: AuthMode = .token) {
+        self.id = id
+        self.name = name
+        self.mcpURL = mcpURL
+        self.authMode = authMode
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        mcpURL = try c.decode(String.self, forKey: .mcpURL)
+        authMode = try c.decodeIfPresent(AuthMode.self, forKey: .authMode) ?? .token
     }
 }
 

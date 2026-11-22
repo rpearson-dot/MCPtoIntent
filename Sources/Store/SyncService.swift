@@ -16,13 +16,14 @@ struct SyncService {
 
     @discardableResult
     func refresh(_ server: ServerConfig) async throws -> Summary {
-        let client = try MCPClient(serverURL: server.mcpURL, token: server.token)
+        let token = try await AuthManager.shared.accessToken(for: server)
+        let client = try MCPClient(serverURL: server.mcpURL, token: token)
         let info = try await client.initialize()
         let tools = try await client.listTools()
         store.setCachedTools(tools, for: server.id)
 
         var manifestChanged = false
-        if let caps = CapabilitiesClient(mcpURL: server.mcpURL, token: server.token) {
+        if let caps = CapabilitiesClient(mcpURL: server.mcpURL, token: token) {
             if let result = try? await caps.fetch(ifNoneMatch: store.etag(server.id)) {
                 store.setEtag(result.etag, for: server.id)
                 if result.changed, let manifest = result.manifest {

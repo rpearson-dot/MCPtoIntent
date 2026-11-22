@@ -40,7 +40,7 @@ final class DataStore: @unchecked Sendable {
 
     func remove(serverID: UUID) {
         saveServers(servers().filter { $0.id != serverID })
-        Keychain.delete(for: serverID)
+        Keychain.clear(for: serverID)
         defaults.removeObject(forKey: Key.tools(serverID))
         defaults.removeObject(forKey: Key.manifest(serverID))
         defaults.removeObject(forKey: Key.etag(serverID))

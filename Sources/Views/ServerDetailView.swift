@@ -14,6 +14,13 @@ struct ServerDetailView: View {
                     Label(model.busy.contains(server.id) ? "Syncing…" : "Sync", systemImage: "arrow.clockwise")
                 }
                 .disabled(model.busy.contains(server.id))
+                if server.authMode == .oauth {
+                    Button {
+                        Task { if await model.signIn(server) { await model.refresh(server) } }
+                    } label: {
+                        Label("Sign in again", systemImage: "person.badge.key")
+                    }
+                }
                 if let st = model.status[server.id] {
                     Text(st).font(.caption).foregroundStyle(.secondary)
                 }

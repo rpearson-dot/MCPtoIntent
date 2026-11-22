@@ -32,7 +32,8 @@ struct RunToolIntent: AppIntent {
         }
 
         let args = Self.buildArguments(for: info, input: input)
-        let client = try MCPClient(serverURL: server.mcpURL, token: server.token)
+        let token = try await AuthManager.shared.accessToken(for: server)
+        let client = try MCPClient(serverURL: server.mcpURL, token: token)
         let result = try await client.callTool(info.name, arguments: args)
         let spoken = result.text.isEmpty ? "Done." : result.text
         return .result(dialog: IntentDialog(stringLiteral: spoken))
