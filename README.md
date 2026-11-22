@@ -62,8 +62,13 @@ Two runners are provided — use whichever suits your account:
   payment method on file** (even though public-repo macOS minutes are free). Add one under **Settings → Billing**, then
   the run works; otherwise the macOS job is cancelled with no runner.
 
+**Permanent download link** (no GitHub sign-in needed): the GitHub Actions build also publishes the `.ipa` to a rolling
+release, so the newest build is always at
+**`https://github.com/rpearson-dot/MCPtoIntent/releases/latest/download/MCPtoIntent.ipa`** — open that on the iPhone and
+it downloads the `.ipa` directly (no `.zip`, no login).
+
 Then:
-1. Download the `.ipa` artifact from the finished build.
+1. Download the `.ipa` — from the link above, or the artifact on a finished build.
 2. Install it with **SideStore** (one-time pairing from a PC, then refreshes on-device over Wi-Fi) or **AltStore**
    (needs AltServer on a PC). On a TrollStore-compatible iOS version, TrollStore installs it permanently with no expiry.
 

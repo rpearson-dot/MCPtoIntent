@@ -11,11 +11,12 @@ on:
 # public-repo macOS minutes are free. Until that's added this job is cancelled with no runner. If you'd rather not add
 # a card, use codemagic.yaml instead (free macOS tier, no card) — same build.
 #
-# Hardening: the workflow token is read-only (it only needs to read the repo and upload an artifact), and checkout
-# doesn't leave credentials on disk. For maximum supply-chain hardening, pin actions to a full commit SHA instead of a
+# Hardening: the token is scoped to `contents: write` — the least that still lets the job publish the .ipa to a
+# Release — and nothing more; checkout doesn't leave credentials on disk, and the Release step uses the preinstalled
+# gh CLI (no third-party action). For maximum supply-chain hardening, pin actions to a full commit SHA instead of a
 # @v5 tag (a tag can be moved); kept on @v5 here so it tracks the latest within the major version.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -63,3 +64,16 @@ jobs:
           name: MCPtoIntent-ipa
           path: MCPtoIntent.ipa
           if-no-files-found: error
+
+      # Publish to a rolling "latest" release so there's a permanent, no-sign-in download link:
+      #   https://github.com/rpearson-dot/MCPtoIntent/releases/latest/download/MCPtoIntent.ipa
+      - name: Publish to the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest MCPtoIntent.ipa \
+            --title "Latest build" \
+            --target "$GITHUB_SHA" \
+            --notes "Unsigned .ipa for SideStore / AltStore (free Apple ID re-signs it on install). Built $(date -u '+%Y-%m-%d %H:%M UTC') from ${GITHUB_SHA:0:7}."
