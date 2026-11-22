@@ -8,6 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Actions runs on this account. Ubuntu OK."
+
   build:
     runs-on: macos-14
     steps:
