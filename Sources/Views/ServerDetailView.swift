@@ -3,6 +3,7 @@ import SwiftUI
 struct ServerDetailView: View {
     @EnvironmentObject var model: AppModel
     let server: ServerConfig
+    @State private var editing = false
 
     var body: some View {
         let tools = model.tools(for: server.id)
@@ -55,6 +56,13 @@ struct ServerDetailView: View {
             }
         }
         .navigationTitle(server.name)
+        .toolbar {
+            Button { editing = true } label: { Image(systemName: "pencil") }
+                .accessibilityLabel("Edit server")
+        }
+        .sheet(isPresented: $editing) {
+            ServerFormView(editing: model.servers.first(where: { $0.id == server.id }) ?? server)
+        }
         .task { if model.tools(for: server.id).isEmpty { await model.refresh(server) } }
     }
 }

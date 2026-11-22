@@ -45,6 +45,18 @@ final class AppModel: ObservableObject {
         reload()
     }
 
+    /// Apply edits to an existing server. A blank `token` in token mode leaves the stored token untouched, so the
+    /// person can change the name or URL without re-entering the secret.
+    func editServer(_ server: ServerConfig, name: String, url: String, token: String, authMode: AuthMode) {
+        var s = server
+        s.name = name.isEmpty ? url : name
+        s.mcpURL = url
+        s.authMode = authMode
+        store.upsert(s)
+        if authMode == .token, !token.isEmpty { s.token = token }
+        reload()
+    }
+
     func remove(_ server: ServerConfig) {
         store.remove(serverID: server.id)
         status[server.id] = nil

@@ -3,6 +3,7 @@ import SwiftUI
 struct ServersView: View {
     @EnvironmentObject var model: AppModel
     @State private var adding = false
+    @State private var editing: ServerConfig?
 
     var body: some View {
         NavigationStack {
@@ -21,6 +22,10 @@ struct ServersView: View {
                             }
                         }
                     }
+                    .swipeActions(edge: .leading) {
+                        Button { editing = server } label: { Label("Edit", systemImage: "pencil") }
+                            .tint(.blue)
+                    }
                 }
                 .onDelete { idx in idx.map { model.servers[$0] }.forEach(model.remove) }
             }
@@ -34,20 +39,36 @@ struct ServersView: View {
                 Button { adding = true } label: { Image(systemName: "plus") }
                     .accessibilityLabel("Add a server")
             }
-            .sheet(isPresented: $adding) { AddServerView() }
+            .sheet(isPresented: $adding) { ServerFormView() }
+            .sheet(item: $editing) { server in ServerFormView(editing: server) }
         }
     }
 }
 
-struct AddServerView: View {
+/// Add a new server, or edit an existing one. `editing` is nil when adding.
+struct ServerFormView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
+
+    let editing: ServerConfig?
+
     @State private var name = ""
     @State private var url = ""
     @State private var token = ""
     @State private var authMode: AuthMode = .token
     @State private var working = false
     @State private var error = ""
+
+    init(editing: ServerConfig? = nil) {
+        self.editing = editing
+        _name = State(initialValue: editing?.name ?? "")
+        _url = State(initialValue: editing?.mcpURL ?? "")
+        _authMode = State(initialValue: editing?.authMode ?? .token)
+        // The stored token is never pre-filled into the field — a blank field keeps it.
+    }
+
+    private var isEditing: Bool { editing != nil }
+    private var confirmLabel: String { isEditing ? "Save" : "Add" }
 
     var body: some View {
         NavigationStack {
@@ -66,7 +87,12 @@ struct AddServerView: View {
                     }
                     .pickerStyle(.segmented)
                     if authMode == .token {
-                        SecureField("API token", text: $token)
+                        SecureField(isEditing ? "API token — leave blank to keep current" : "API token", text: $token)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else if isEditing {
+                        Text("Use “Sign in again” on the server screen to refresh the OAuth session.")
+                            .font(.footnote).foregroundStyle(.secondary)
                     } else {
                         Text("You'll sign in through a secure web sheet after tapping Add.")
                             .font(.footnote).foregroundStyle(.secondary)
@@ -80,15 +106,19 @@ struct AddServerView: View {
                     Section { Text(error).font(.footnote).foregroundStyle(.red) }
                 }
             }
-            .navigationTitle("Add server")
+            .navigationTitle(isEditing ? "Edit server" : "Add server")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(working) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(working ? "…" : "Add") { add() }
+                    Button(working ? "…" : confirmLabel) { submit() }
                         .disabled(url.isEmpty || working)
                 }
             }
         }
+    }
+
+    private func submit() {
+        if let existing = editing { save(existing) } else { add() }
     }
 
     private func add() {
@@ -106,6 +136,25 @@ struct AddServerView: View {
                 model.remove(server)                 // sign-in failed/cancelled: don't leave a dead server
             }
             working = false
+        }
+    }
+
+    private func save(_ existing: ServerConfig) {
+        working = true
+        error = ""
+        let switchedToOAuth = authMode == .oauth && existing.authMode != .oauth
+        model.editServer(existing, name: name, url: url, token: token, authMode: authMode)
+        guard let updated = model.servers.first(where: { $0.id == existing.id }) else { dismiss(); return }
+        Task {
+            // Changing the token or URL means the cached tools may no longer be valid — re-sync. If the person just
+            // switched this server to OAuth, send them through sign-in first.
+            if switchedToOAuth, !(await model.signIn(updated)) {
+                error = model.status[updated.id] ?? "Sign-in failed."
+                working = false
+                return
+            }
+            await model.refresh(updated)
+            dismiss()
         }
     }
 }
