@@ -25,6 +25,7 @@ struct MCPClient {
     let endpoint: URL
     let token: String
     var session: URLSession = .shared
+    var label: String = ""  // the server's name, for diagnostics only
 
     init(serverURL: String, token: String) throws {
         guard let url = URL(string: serverURL), url.scheme?.hasPrefix("http") == true else {
@@ -82,17 +83,33 @@ struct MCPClient {
 
     private func send(method: String, params: JSONValue?) async throws -> JSONValue {
         let body = try JSONEncoder().encode(RPCRequest(id: 1, method: method, params: params))
-        let (data, response) = try await session.data(for: request(body: body))
-        guard let http = response as? HTTPURLResponse else { throw MCPClientError.malformed("no HTTP response") }
-        guard (200..<300).contains(http.statusCode) else {
-            throw MCPClientError.http(http.statusCode, String(data: data, encoding: .utf8)?.prefix(200).description ?? "")
+        let start = Date()
+        var status: Int?
+        var respData: Data?
+        do {
+            let (data, response) = try await session.data(for: request(body: body))
+            respData = data
+            guard let http = response as? HTTPURLResponse else { throw MCPClientError.malformed("no HTTP response") }
+            status = http.statusCode
+            guard (200..<300).contains(http.statusCode) else {
+                throw MCPClientError.http(http.statusCode, String(data: data, encoding: .utf8)?.prefix(200).description ?? "")
+            }
+            let payload = Self.jsonPayload(data: data, contentType: http.value(forHTTPHeaderField: "Content-Type"))
+            let rpc = try JSONDecoder().decode(RPCResponse.self, from: payload)
+            if let error = rpc.error { throw MCPClientError.rpc(error) }
+            guard let result = rpc.result else { throw MCPClientError.malformed("the reply had no result") }
+            Diagnostics.shared.recordMCP(server: label, method: method, requestBody: body, status: status,
+                                         responseBody: respData, error: nil, ms: Self.ms(since: start))
+            return result
+        } catch {
+            Diagnostics.shared.recordMCP(server: label, method: method, requestBody: body, status: status,
+                                         responseBody: respData, error: String(describing: error),
+                                         ms: Self.ms(since: start))
+            throw error
         }
-        let payload = Self.jsonPayload(data: data, contentType: http.value(forHTTPHeaderField: "Content-Type"))
-        let rpc = try JSONDecoder().decode(RPCResponse.self, from: payload)
-        if let error = rpc.error { throw MCPClientError.rpc(error) }
-        guard let result = rpc.result else { throw MCPClientError.malformed("the reply had no result") }
-        return result
     }
+
+    private static func ms(since: Date) -> Int { Int(Date().timeIntervalSince(since) * 1000) }
 
     private func notify(method: String) async throws {
         // a JSON-RPC notification has no id and expects no reply (the server answers 202)

@@ -17,7 +17,8 @@ struct SyncService {
     @discardableResult
     func refresh(_ server: ServerConfig) async throws -> Summary {
         let token = try await AuthManager.shared.accessToken(for: server)
-        let client = try MCPClient(serverURL: server.mcpURL, token: token)
+        var client = try MCPClient(serverURL: server.mcpURL, token: token)
+        client.label = server.name
         let info = try await client.initialize()
         let tools = try await client.listTools()
         store.setCachedTools(tools, for: server.id)

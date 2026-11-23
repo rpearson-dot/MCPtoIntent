@@ -89,6 +89,14 @@ entitlement for the paid-account / TestFlight route. So one project serves both;
    action → pick the tool → record a phrase. (App Shortcut phrases are fixed at build time, so custom natural phrases
    are set this way — this is an Apple App Intents limitation, not a server one.)
 
+## Diagnostics
+
+Having trouble (a server that won't sync, OAuth that won't sign in)? Tap the **stethoscope** on the servers screen.
+Turn **Record diagnostics** on, reproduce the problem, then either **Share** the log (tokens are redacted) or **Send to
+syslog** — set a host and port (e.g. a World Assistant server on your tailnet, port 514) and the captured MCP
+requests/responses and OAuth steps are sent as syslog lines (UDP or TCP). Everything is kept in memory only and
+nothing is sent until you tap a button.
+
 ## Layout
 
 ```

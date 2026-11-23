@@ -48,9 +48,18 @@ struct ServersView: View {
                     ServerDetailView(server: server)
                 }
             }
+            .navigationDestination(for: String.self) { route in
+                if route == "diagnostics" { DiagnosticsView() }
+            }
             .toolbar {
-                Button { adding = true } label: { Image(systemName: "plus") }
-                    .accessibilityLabel("Add a server")
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(value: "diagnostics") { Image(systemName: "stethoscope") }
+                        .accessibilityLabel("Diagnostics")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { adding = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Add a server")
+                }
             }
             .sheet(isPresented: $adding) { ServerFormView() }
             .sheet(item: $editing) { server in ServerFormView(editing: server) }
