@@ -1,6 +1,12 @@
 import Foundation
 import Network
 
+/// The result of sending diagnostics to a syslog server.
+enum DiagSendResult {
+    case sent(Int)
+    case failed(String)
+}
+
 /// One recorded event: an MCP request/response, an OAuth step, or a note. Held in memory only (never persisted), so
 /// nothing sensitive is written to disk. Request and response bodies are redacted before they are stored.
 struct DiagEntry: Identifiable {
@@ -99,20 +105,20 @@ final class Diagnostics: @unchecked Sendable {
 
     /// Send every captured event to the configured syslog server (RFC 3164). UDP sends one datagram per line; TCP
     /// sends them newline-framed in one go (both are accepted by World Assistant's syslog listener).
-    func sendToSyslog() async -> Result<Int, String> {
+    func sendToSyslog() async -> DiagSendResult {
         let host = syslogHost
-        guard !host.isEmpty else { return .failure("Set a syslog host first.") }
-        guard let port = NWEndpoint.Port(rawValue: syslogPort) else { return .failure("That port is not valid.") }
+        guard !host.isEmpty else { return .failed("Set a syslog host first.") }
+        guard let port = NWEndpoint.Port(rawValue: syslogPort) else { return .failed("That port is not valid.") }
         let items = snapshot()
-        guard !items.isEmpty else { return .failure("Nothing captured yet. Turn recording on, reproduce the issue, then send.") }
+        guard !items.isEmpty else { return .failed("Nothing captured yet. Turn recording on, reproduce the issue, then send.") }
 
         let hostname = Self.deviceHost()
         let lines = items.map { Self.syslogLine($0, hostname: hostname) }
         let conn = NWConnection(host: NWEndpoint.Host(host), port: port, using: useTCP ? .tcp : .udp)
 
-        return await withCheckedContinuation { (cont: CheckedContinuation<Result<Int, String>, Never>) in
+        return await withCheckedContinuation { (cont: CheckedContinuation<DiagSendResult, Never>) in
             var finished = false
-            func finish(_ r: Result<Int, String>) {
+            func finish(_ r: DiagSendResult) {
                 guard !finished else { return }
                 finished = true
                 conn.cancel()
@@ -134,15 +140,15 @@ final class Diagnostics: @unchecked Sendable {
                         })
                     }
                     group.notify(queue: .global()) {
-                        if let sendError { finish(.failure(sendError)) } else { finish(.success(items.count)) }
+                        if let sendError { finish(.failed(sendError)) } else { finish(.sent(items.count)) }
                     }
-                case let .failed(err): finish(.failure(err.localizedDescription))
-                case let .waiting(err): finish(.failure(err.localizedDescription))  // host unreachable, etc.
+                case let .failed(err): finish(.failed(err.localizedDescription))
+                case let .waiting(err): finish(.failed(err.localizedDescription))  // host unreachable, etc.
                 default: break
                 }
             }
             conn.start(queue: .global())
-            DispatchQueue.global().asyncAfter(deadline: .now() + 8) { finish(.failure("Timed out reaching \(host):\(self.syslogPort).")) }
+            DispatchQueue.global().asyncAfter(deadline: .now() + 8) { finish(.failed("Timed out reaching \(host):\(self.syslogPort).")) }
         }
     }
 

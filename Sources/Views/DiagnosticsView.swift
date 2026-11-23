@@ -89,8 +89,8 @@ struct DiagnosticsView: View {
     private func send() async {
         sending = true; message = nil
         switch await diag.sendToSyslog() {
-        case let .success(n): message = "Sent \(n) events to \(host):\(port) over \(useTCP ? "TCP" : "UDP")."
-        case let .failure(why): message = why
+        case let .sent(n): message = "Sent \(n) events to \(host):\(port) over \(useTCP ? "TCP" : "UDP")."
+        case let .failed(why): message = why
         }
         sending = false
     }
